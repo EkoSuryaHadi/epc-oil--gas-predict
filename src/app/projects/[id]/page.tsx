@@ -1,5 +1,5 @@
 "use client";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AppNav from "@/components/AppNav";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -45,22 +45,65 @@ function buildTasks(seed: number): GanttTask[] {
 
 export default function ProjectDetail({ params }: { params: { id: string } }) {
   const idNum = Number(params.id);
-  const project = PROJECTS.find((p) => p.id === idNum) ?? PROJECTS[0];
+  const fallbackProject = PROJECTS.find((p) => p.id === idNum) ?? PROJECTS[0];
+
+  const [server, setServer] = useState<{
+    project?: { id: number; name: string; budget: number; spent: number; completion: number } | null;
+    tasks?: { id: string; name: string; start: string; end: string; progress: number }[];
+    milestones?: { name: string; date: string; status: string }[];
+    resources?: { role: string; allocation: number; fte: number }[];
+    sCurve?: { month: string; planned: number; actual: number }[];
+  } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const token = typeof window !== "undefined" ? localStorage.getItem("bearer_token") : null;
+        const res = await fetch(`/api/projects/${idNum}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
+        if (!res.ok) throw new Error(`Failed to load project (${res.status})`);
+        const json = await res.json();
+        if (isMounted) setServer(json);
+      } catch (e: any) {
+        if (isMounted) setError(e?.message || "Failed to load project");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    load();
+    return () => { isMounted = false; };
+  }, [idNum]);
+
+  const project = server?.project ?? fallbackProject;
   const util = Math.round((project.spent / project.budget) * 100);
-  const tasks = useMemo(() => buildTasks(idNum), [idNum]);
-  const sCurve = useMemo(() => buildProjectSCurve(project.completion), [project.completion]);
+  const tasks = useMemo(() => {
+    if (server?.tasks && server.tasks.length) {
+      return server.tasks.map((t) => ({ id: t.id, name: t.name, start: new Date(t.start), end: new Date(t.end), progress: t.progress } satisfies GanttTask));
+    }
+    return buildTasks(idNum);
+  }, [server?.tasks, idNum]);
+  const sCurve = useMemo(() => {
+    if (server?.sCurve && server.sCurve.length) return server.sCurve;
+    return buildProjectSCurve(project.completion);
+  }, [server?.sCurve, project.completion]);
   const eng = clamp(project.completion * 1.2);
   const proc = clamp((project.completion - 20) * 1.1);
   const cons = clamp((project.completion - 40) * 1.05);
 
-  const resources = [
+  const resources = server?.resources && server.resources.length ? server.resources : [
     { role: "Engineering", allocation: 72, fte: 48 },
     { role: "Procurement", allocation: 58, fte: 22 },
     { role: "Construction", allocation: 64, fte: 120 },
     { role: "QC / HSE", allocation: 45, fte: 18 },
   ];
 
-  const milestones = [
+  const milestones = server?.milestones && server.milestones.length ? server.milestones : [
     { name: "IFC Issued", date: "2025-06-30", status: "Done" },
     { name: "Long Lead PO", date: "2025-09-15", status: "On Track" },
     { name: "Mechanical Completion", date: "2026-03-10", status: "At Risk" },
@@ -78,6 +121,8 @@ export default function ProjectDetail({ params }: { params: { id: string } }) {
           <div>
             <h1 className="text-2xl font-semibold">{project.name}</h1>
             <p className="text-sm text-muted-foreground">Project ID: {idNum}</p>
+            {loading && <p className="text-xs text-muted-foreground mt-1">Loading project…</p>}
+            {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
           </div>
           <Link href="/projects" className="text-sm underline">Back to Projects</Link>
         </div>
@@ -140,7 +185,7 @@ export default function ProjectDetail({ params }: { params: { id: string } }) {
               </CardHeader>
               <CardContent>
                 <ChartContainer
-                  config={{ planned: { label: "Planned", color: "hsl(var(--chart-1))" }, actual: { label: "Actual", color: "hsl(var(--chart-3))" } }}
+                  config={{ planned: { label: "Planned", color: "var(--chart-1)" }, actual: { label: "Actual", color: "var(--chart-3)" } }}
                   className="h-64 w-full"
                 >
                   <LineChart data={sCurve} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
@@ -149,8 +194,8 @@ export default function ProjectDetail({ params }: { params: { id: string } }) {
                     <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tickLine={false} axisLine={false} />
                     <ChartTooltip content={<ChartTooltipContent />} />
                     <ChartLegend content={<ChartLegendContent />} />
-                    <Line type="monotone" dataKey="planned" stroke="hsl(var(--chart-1))" strokeWidth={2} dot={false} />
-                    <Line type="monotone" dataKey="actual" stroke="hsl(var(--chart-3))" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="planned" stroke="var(--color-planned, var(--chart-1))" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="actual" stroke="var(--color-actual, var(--chart-3))" strokeWidth={2} dot={false} />
                   </LineChart>
                 </ChartContainer>
               </CardContent>

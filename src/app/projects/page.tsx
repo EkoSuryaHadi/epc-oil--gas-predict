@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,32 +12,32 @@ import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartToo
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 const data = [
-{ id: 1, name: "LNG Train 3 Expansion", status: "On Track", budget: 1200, spent: 610, start: "2024-11-15", end: "2027-06-30", completion: 55 },
-{ id: 2, name: "Offshore Platform Delta", status: "At Risk", budget: 780, spent: 560, start: "2024-04-01", end: "2026-02-15", completion: 70 },
-{ id: 3, name: "Subsea Tieback Aurora", status: "On Track", budget: 450, spent: 210, start: "2025-02-01", end: "2026-10-31", completion: 46 },
-{ id: 4, name: "Crude Pipeline EPC", status: "Delayed", budget: 300, spent: 195, start: "2024-09-05", end: "2025-12-30", completion: 45 },
-{ id: 5, name: "Refinery Upgrade Phase II", status: "On Track", budget: 950, spent: 440, start: "2025-03-01", end: "2027-01-30", completion: 25 },
-{ id: 6, name: "Gas Processing Train 4", status: "On Track", budget: 420, spent: 225, start: "2025-01-10", end: "2026-08-20", completion: 54 },
-{ id: 7, name: "Petchem PP Unit Revamp", status: "At Risk", budget: 1100, spent: 730, start: "2024-06-20", end: "2026-12-15", completion: 66 },
-{ id: 8, name: "FPSO Conversion Orion", status: "Delayed", budget: 900, spent: 340, start: "2025-04-10", end: "2027-03-31", completion: 32}];
+  { id: 1, name: "LNG Train 3 Expansion", status: "On Track", budget: 1200, spent: 610, start: "2024-11-15", end: "2027-06-30", completion: 55 },
+  { id: 2, name: "Offshore Platform Delta", status: "At Risk", budget: 780, spent: 560, start: "2024-04-01", end: "2026-02-15", completion: 70 },
+  { id: 3, name: "Subsea Tieback Aurora", status: "On Track", budget: 450, spent: 210, start: "2025-02-01", end: "2026-10-31", completion: 46 },
+  { id: 4, name: "Crude Pipeline EPC", status: "Delayed", budget: 300, spent: 195, start: "2024-09-05", end: "2025-12-30", completion: 45 },
+  { id: 5, name: "Refinery Upgrade Phase II", status: "On Track", budget: 950, spent: 440, start: "2025-03-01", end: "2027-01-30", completion: 25 },
+  { id: 6, name: "Gas Processing Train 4", status: "On Track", budget: 420, spent: 225, start: "2025-01-10", end: "2026-08-20", completion: 54 },
+  { id: 7, name: "Petchem PP Unit Revamp", status: "At Risk", budget: 1100, spent: 730, start: "2024-06-20", end: "2026-12-15", completion: 66 },
+  { id: 8, name: "FPSO Conversion Orion", status: "Delayed", budget: 900, spent: 340, start: "2025-04-10", end: "2027-03-31", completion: 32}];
 
 
 const statuses = ["On Track", "At Risk", "Delayed"] as const;
 
 // s-curve sample portfolio data (cumulative %) — Fiscal Apr–Mar
 const sCurveData = [
-{ month: "Apr", planned: 4, actual: 3 },
-{ month: "May", planned: 9, actual: 8 },
-{ month: "Jun", planned: 15, actual: 14 },
-{ month: "Jul", planned: 22, actual: 20 },
-{ month: "Aug", planned: 30, actual: 28 },
-{ month: "Sep", planned: 40, actual: 38 },
-{ month: "Oct", planned: 52, actual: 49 },
-{ month: "Nov", planned: 65, actual: 61 },
-{ month: "Dec", planned: 77, actual: 73 },
-{ month: "Jan", planned: 87, actual: 84 },
-{ month: "Feb", planned: 95, actual: 92 },
-{ month: "Mar", planned: 100, actual: 98 }];
+  { month: "Apr", planned: 4, actual: 3 },
+  { month: "May", planned: 9, actual: 8 },
+  { month: "Jun", planned: 15, actual: 14 },
+  { month: "Jul", planned: 22, actual: 20 },
+  { month: "Aug", planned: 30, actual: 28 },
+  { month: "Sep", planned: 40, actual: 38 },
+  { month: "Oct", planned: 52, actual: 49 },
+  { month: "Nov", planned: 65, actual: 61 },
+  { month: "Dec", planned: 77, actual: 73 },
+  { month: "Jan", planned: 87, actual: 84 },
+  { month: "Feb", planned: 95, actual: 92 },
+  { month: "Mar", planned: 100, actual: 98 }];
 
 
 function StatusBadge({ s }: {s: typeof statuses[number];}) {
@@ -72,14 +72,44 @@ function derivedStatus(p: {spent: number;budget: number;completion: number;start
 export default function ProjectsPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<string | null>(null);
+  const [projects, setProjects] = useState<typeof data | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const token = typeof window !== "undefined" ? localStorage.getItem("bearer_token") : null;
+        const res = await fetch("/api/projects", {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
+        if (!res.ok) throw new Error(`Failed to load projects (${res.status})`);
+        const json = await res.json();
+        if (isMounted && Array.isArray(json?.projects)) {
+          setProjects(json.projects);
+        }
+      } catch (e: any) {
+        if (isMounted) setError(e?.message || "Failed to load projects");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    load();
+    return () => { isMounted = false; };
+  }, []);
+
+  const source = projects && projects.length ? projects : data;
 
   const filtered = useMemo(() => {
-    return data.filter((p) => {
+    return source.filter((p) => {
       const matchesQuery = p.name.toLowerCase().includes(query.toLowerCase());
       const matchesStatus = status ? p.status === status : true;
       return matchesQuery && matchesStatus;
     });
-  }, [query, status]);
+  }, [query, status, source]);
 
   return (
     <div>
@@ -90,6 +120,8 @@ export default function ProjectsPage() {
             <CardTitle>Projects</CardTitle>
           </CardHeader>
           <CardContent>
+            {loading && <div className="mb-3 text-xs text-muted-foreground">Loading projects…</div>}
+            {error && <div className="mb-3 text-xs text-red-600">{error}</div>}
             <div className="flex flex-col sm:flex-row gap-3 mb-4">
               <Input placeholder="Search projects..." value={query} onChange={(e) => setQuery(e.target.value)} />
               <Select value={status ?? undefined} onValueChange={(v) => setStatus(v)}>
