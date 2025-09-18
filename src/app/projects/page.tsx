@@ -110,7 +110,7 @@ export default function ProjectsPage() {
               </div>
               <ChartContainer
                 config={{ planned: { label: "Planned", color: "hsl(var(--chart-1))" }, actual: { label: "Actual", color: "hsl(var(--chart-3))" } }}
-                className="h-64 w-full !opacity-100">
+                className="h-64 w-full rounded-md border bg-card p-2">
 
                 <LineChart data={sCurveData} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />

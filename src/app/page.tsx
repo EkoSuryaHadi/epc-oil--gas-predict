@@ -52,15 +52,15 @@ export default function Home() {
             </CardHeader>
             <CardContent className="space-y-3">
               {topRisks.map((r) => (
-                <div key={r.name} className="flex items-center gap-3">
+                <div key={r.name} className="flex items-center gap-4">
                   <div className="min-w-0 flex-1">
                     <div className="font-medium truncate">{r.name}</div>
                     <div className="text-xs text-muted-foreground">Owner: {r.owner}</div>
                   </div>
-                  <div className="w-40">
+                  <div className="w-32 sm:w-48">
                     <Progress value={r.rating} />
                   </div>
-                  <div className="text-xs w-10 text-right">{r.rating}%</div>
+                  <div className="text-xs w-12 text-right tabular-nums">{r.rating}%</div>
                 </div>
               ))}
             </CardContent>
