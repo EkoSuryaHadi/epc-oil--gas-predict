@@ -46,7 +46,7 @@ export function PredictiveAnalytics() {
       <div className="col-span-1">
         <h3 className="text-sm font-medium mb-2">Cost Forecast (USD M)</h3>
         <ChartContainer
-          className="bg-card rounded-xl border p-4"
+          className="bg-card rounded-xl border p-4 h-64"
           config={{
             actual: { label: "Actual", color: "var(--chart-1)" },
             forecast: { label: "Forecast", color: "var(--chart-2)" },
@@ -66,7 +66,7 @@ export function PredictiveAnalytics() {
       <div className="col-span-1">
         <h3 className="text-sm font-medium mb-2">Schedule Prediction (% Complete)</h3>
         <ChartContainer
-          className="bg-card rounded-xl border p-4"
+          className="bg-card rounded-xl border p-4 h-64"
           config={{
             planned: { label: "Planned", color: "var(--chart-3)" },
             predicted: { label: "Predicted", color: "var(--chart-4)" },
@@ -86,7 +86,7 @@ export function PredictiveAnalytics() {
       <div className="md:col-span-2">
         <h3 className="text-sm font-medium mb-2">Risk Assessment (Probability x Impact)</h3>
         <ChartContainer
-          className="bg-card rounded-xl border p-4"
+          className="bg-card rounded-xl border p-4 h-64"
           config={{
             score: { label: "Risk Score", color: "var(--chart-5)" },
           }}
