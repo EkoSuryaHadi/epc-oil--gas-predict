@@ -24,25 +24,49 @@ const data = [
 
 const statuses = ["On Track", "At Risk", "Delayed"] as const;
 
-// s-curve sample portfolio data (cumulative %)
+// s-curve sample portfolio data (cumulative %) — Fiscal Apr–Mar
 const sCurveData = [
-  { month: "Jan", planned: 4, actual: 3 },
-  { month: "Feb", planned: 9, actual: 8 },
-  { month: "Mar", planned: 15, actual: 14 },
-  { month: "Apr", planned: 22, actual: 20 },
-  { month: "May", planned: 30, actual: 28 },
-  { month: "Jun", planned: 40, actual: 38 },
-  { month: "Jul", planned: 52, actual: 49 },
-  { month: "Aug", planned: 65, actual: 61 },
-  { month: "Sep", planned: 77, actual: 73 },
-  { month: "Oct", planned: 87, actual: 84 },
-  { month: "Nov", planned: 95, actual: 92 },
-  { month: "Dec", planned: 100, actual: 98 },
+  { month: "Apr", planned: 4, actual: 3 },
+  { month: "May", planned: 9, actual: 8 },
+  { month: "Jun", planned: 15, actual: 14 },
+  { month: "Jul", planned: 22, actual: 20 },
+  { month: "Aug", planned: 30, actual: 28 },
+  { month: "Sep", planned: 40, actual: 38 },
+  { month: "Oct", planned: 52, actual: 49 },
+  { month: "Nov", planned: 65, actual: 61 },
+  { month: "Dec", planned: 77, actual: 73 },
+  { month: "Jan", planned: 87, actual: 84 },
+  { month: "Feb", planned: 95, actual: 92 },
+  { month: "Mar", planned: 100, actual: 98 },
 ];
 
 function StatusBadge({ s }: { s: typeof statuses[number] }) {
   const color = s === "On Track" ? "bg-green-500" : s === "At Risk" ? "bg-amber-500" : "bg-red-500";
   return <Badge className={`${color} text-white`}>{s}</Badge>;
+}
+
+// Helpers: formatting and auto risk flags
+const formatMillionsUSD = (n: number) => `$${n.toLocaleString()}M`;
+
+function clamp(v: number, min = 0, max = 100) { return Math.min(max, Math.max(min, v)); }
+function plannedCompletionToday(p: { start: string; end: string }) {
+  const now = new Date();
+  const start = new Date(p.start).getTime();
+  const end = new Date(p.end).getTime();
+  const t = now.getTime();
+  if (t <= start) return 0;
+  if (t >= end) return 100;
+  return clamp(((t - start) / (end - start)) * 100);
+}
+function derivedStatus(p: { spent: number; budget: number; completion: number; start: string; end: string }): typeof statuses[number] {
+  const util = p.budget > 0 ? (p.spent / p.budget) * 100 : 0;
+  const costDelta = util - p.completion; // positive = overspend vs progress
+  const plan = plannedCompletionToday(p);
+  const schedDelta = plan - p.completion; // positive = behind schedule
+  const worst = Math.max(costDelta, schedDelta);
+  if (worst >= 20) return "Delayed";
+  if (worst >= 10) return "At Risk";
+  return "On Track";
 }
 
 export default function ProjectsPage() {
@@ -82,7 +106,7 @@ export default function ProjectsPage() {
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-medium text-muted-foreground">Portfolio S-Curve (Planned vs Actual)</h3>
-                <span className="text-xs text-muted-foreground">Cumulative %</span>
+                <span className="text-xs text-muted-foreground">Fiscal Year: Apr–Mar • Cumulative %</span>
               </div>
               <ChartContainer
                 config={{ planned: { label: "Planned", color: "hsl(var(--chart-1))" }, actual: { label: "Actual", color: "hsl(var(--chart-3))" } }}
@@ -106,7 +130,7 @@ export default function ProjectsPage() {
                   <TableHead>Project</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Timeline</TableHead>
-                  <TableHead>Budget (USD M)</TableHead>
+                  <TableHead>Budget (USD, M)</TableHead>
                   <TableHead>Completion</TableHead>
                 </TableRow>
               </TableHeader>
@@ -114,15 +138,16 @@ export default function ProjectsPage() {
                 {filtered.map((p) => {
                   const duration = `${new Date(p.start).toLocaleDateString()} - ${new Date(p.end).toLocaleDateString()}`;
                   const util = Math.round((p.spent / p.budget) * 100);
+                  const autoStatus = derivedStatus(p);
                   return (
                     <TableRow key={p.id}>
                       <TableCell>
                         <Link href={`/projects/${p.id}`} className="font-medium hover:underline">{p.name}</Link>
                       </TableCell>
-                      <TableCell><StatusBadge s={p.status as any} /></TableCell>
+                      <TableCell><StatusBadge s={autoStatus as any} /></TableCell>
                       <TableCell>{duration}</TableCell>
                       <TableCell>
-                        <div className="text-sm">{p.spent} / {p.budget} ({util}%)</div>
+                        <div className="text-sm">{formatMillionsUSD(p.spent)} / {formatMillionsUSD(p.budget)} ({util}%)</div>
                         <Progress value={util} />
                       </TableCell>
                       <TableCell>
