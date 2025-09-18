@@ -19,7 +19,7 @@ const data = [
 { id: 5, name: "Refinery Upgrade Phase II", status: "On Track", budget: 950, spent: 440, start: "2025-03-01", end: "2027-01-30", completion: 25 },
 { id: 6, name: "Gas Processing Train 4", status: "On Track", budget: 420, spent: 225, start: "2025-01-10", end: "2026-08-20", completion: 54 },
 { id: 7, name: "Petchem PP Unit Revamp", status: "At Risk", budget: 1100, spent: 730, start: "2024-06-20", end: "2026-12-15", completion: 66 },
-{ id: 8, name: "FPSO Conversion Orion", status: "Delayed", budget: 900, spent: 340, start: "2025-04-10", end: "2027-03-31", completion: 32 }];
+{ id: 8, name: "FPSO Conversion Orion", status: "Delayed", budget: 900, spent: 340, start: "2025-04-10", end: "2027-03-31", completion: 32}];
 
 
 const statuses = ["On Track", "At Risk", "Delayed"] as const;
@@ -109,7 +109,7 @@ export default function ProjectsPage() {
                 <span className="text-xs text-muted-foreground">Fiscal Year: Apr–Mar • Cumulative %</span>
               </div>
               <ChartContainer
-                config={{ planned: { label: "Planned", color: "hsl(var(--chart-1))" }, actual: { label: "Actual", color: "hsl(var(--chart-3))" } }}
+                config={{ planned: { label: "Planned", color: "var(--chart-1)" }, actual: { label: "Actual", color: "var(--chart-3)" } }}
                 className="h-64 w-full rounded-md border bg-card p-2">
 
                 <LineChart data={sCurveData} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
@@ -118,8 +118,8 @@ export default function ProjectsPage() {
                   <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tickLine={false} axisLine={false} />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <ChartLegend content={<ChartLegendContent />} />
-                  <Line type="monotone" dataKey="planned" stroke="hsl(var(--chart-1))" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="actual" stroke="hsl(var(--chart-3))" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="planned" stroke="var(--color-planned, var(--chart-1))" strokeWidth={2.5} strokeLinecap="round" isAnimationActive={false} dot={{ r: 1.5 }} />
+                  <Line type="monotone" dataKey="actual" stroke="var(--color-actual, var(--chart-3))" strokeWidth={2.5} strokeLinecap="round" isAnimationActive={false} dot={{ r: 1.5 }} />
                 </LineChart>
               </ChartContainer>
             </div>
