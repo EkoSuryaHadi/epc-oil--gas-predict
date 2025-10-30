@@ -23,6 +23,7 @@ const data = [
 
 
 const statuses = ["On Track", "At Risk", "Delayed"] as const;
+type Status = (typeof statuses)[number];
 
 // s-curve sample portfolio data (cumulative %) — Fiscal Apr–Mar
 const sCurveData = [
@@ -40,9 +41,10 @@ const sCurveData = [
   { month: "Mar", planned: 100, actual: 98 }];
 
 
-function StatusBadge({ s }: {s: typeof statuses[number];}) {
-  const color = s === "On Track" ? "bg-green-500" : s === "At Risk" ? "bg-amber-500" : "bg-red-500";
-  return <Badge className={`${color} text-white`}>{s}</Badge>;
+function StatusBadge({ status }: { status: Status }) {
+  const color =
+    status === "On Track" ? "bg-green-500" : status === "At Risk" ? "bg-amber-500" : "bg-red-500";
+  return <Badge className={`${color} text-white`}>{status}</Badge>;
 }
 
 // Helpers: formatting and auto risk flags
@@ -58,7 +60,7 @@ function plannedCompletionToday(p: {start: string;end: string;}) {
   if (t >= end) return 100;
   return clamp((t - start) / (end - start) * 100);
 }
-function derivedStatus(p: {spent: number;budget: number;completion: number;start: string;end: string;}): typeof statuses[number] {
+function derivedStatus(p: {spent: number;budget: number;completion: number;start: string;end: string;}): Status {
   const util = p.budget > 0 ? p.spent / p.budget * 100 : 0;
   const costDelta = util - p.completion; // positive = overspend vs progress
   const plan = plannedCompletionToday(p);
@@ -176,7 +178,7 @@ export default function ProjectsPage() {
                       <TableCell>
                         <Link href={`/projects/${p.id}`} className="font-medium hover:underline">{p.name}</Link>
                       </TableCell>
-                      <TableCell><StatusBadge s={autoStatus as any} /></TableCell>
+                      <TableCell><StatusBadge status={autoStatus} /></TableCell>
                       <TableCell>{duration}</TableCell>
                       <TableCell>
                         <div className="text-sm">{formatMillionsUSD(p.spent)} / {formatMillionsUSD(p.budget)} ({util}%)</div>
@@ -194,6 +196,6 @@ export default function ProjectsPage() {
           </CardContent>
         </Card>
       </main>
-    </div>);
-
+    </div>
+  );
 }
