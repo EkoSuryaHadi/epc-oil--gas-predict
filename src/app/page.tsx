@@ -36,8 +36,14 @@ export default function Home() {
         </div>
 
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {kpis.map((k) => (
-            <KPICard key={k.title} title={k.title} value={k.value} description={k.description} progress={k.progress as any} />
+          {kpis.map((kpi) => (
+            <KPICard
+              key={kpi.title}
+              title={kpi.title}
+              value={kpi.value}
+              description={kpi.description}
+              progress={kpi.progress}
+            />
           ))}
         </section>
 
